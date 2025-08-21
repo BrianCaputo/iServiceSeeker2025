@@ -1,0 +1,335 @@
+﻿@page "/Account/CompleteProfile"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using iServiceSeeker.Core.Entities
+@using iServiceSeeker.Web.Services
+@inject UserManager<ApplicationUser> UserManager
+@inject UserProfileService ProfileService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@attribute [Authorize]
+
+<PageTitle>Complete Your Profile - iServiceSeeker</PageTitle>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0">Complete Your Profile</h3>
+                    <p class="text-muted mb-0">Tell us more about yourself to get started</p>
+                </div>
+                <div class="card-body">
+                    @if (!profileTypeSelected)
+                    {
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 profile-type-card" @onclick="() => SelectProfileType(UserType.Homeowner)">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-home fa-3x text-primary mb-3"></i>
+                                        <h5>I'm a Homeowner</h5>
+                                        <p class="text-muted">Looking for contractors and services for my home</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 profile-type-card" @onclick="() => SelectProfileType(UserType.Contractor)">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-tools fa-3x text-success mb-3"></i>
+                                        <h5>I'm a Contractor</h5>
+                                        <p class="text-muted">Providing services to homeowners</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (selectedUserType == UserType.Homeowner)
+                    {
+                        <EditForm Model="homeownerProfile" OnValidSubmit="CompleteHomeownerProfile">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <h5>Homeowner Information</h5>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">First Name</label>
+                                        <InputText @bind-Value="currentUser!.FirstName" class="form-control" />
+                                        <ValidationMessage For="() => currentUser.FirstName" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Last Name</label>
+                                        <InputText @bind-Value="currentUser!.LastName" class="form-control" />
+                                        <ValidationMessage For="() => currentUser.LastName" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Address</label>
+                                <InputText @bind-Value="homeownerProfile.Address" class="form-control" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">City</label>
+                                        <InputText @bind-Value="homeownerProfile.City" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">State</label>
+                                        <InputText @bind-Value="homeownerProfile.State" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">ZIP Code</label>
+                                        <InputText @bind-Value="homeownerProfile.ZipCode" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <InputCheckbox @bind-Value="homeownerProfile.ReceiveEmailNotifications" class="form-check-input" />
+                                    <label class="form-check-label">Receive email notifications</label>
+                                </div>
+                                <div class="form-check">
+                                    <InputCheckbox @bind-Value="homeownerProfile.ReceiveSmsNotifications" class="form-check-input" />
+                                    <label class="form-check-label">Receive SMS notifications</label>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Complete Profile
+                            </button>
+                        </EditForm>
+                    }
+                    else if (selectedUserType == UserType.Contractor)
+                    {
+                        <EditForm Model="contractorProfile" OnValidSubmit="CompleteContractorProfile">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary class="alert alert-danger" />
+
+                            <h5>Contractor Information</h5>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">First Name</label>
+                                        <InputText @bind-Value="currentUser!.FirstName" class="form-control" />
+                                        <ValidationMessage For="() => currentUser.FirstName" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Last Name</label>
+                                        <InputText @bind-Value="currentUser!.LastName" class="form-control" />
+                                        <ValidationMessage For="() => currentUser.LastName" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Company Name *</label>
+                                <InputText @bind-Value="contractorProfile.CompanyName" class="form-control" />
+                                <ValidationMessage For="() => contractorProfile.CompanyName" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">License Number</label>
+                                        <InputText @bind-Value="contractorProfile.LicenseNumber" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Service Radius (miles)</label>
+                                        <InputNumber @bind-Value="contractorProfile.ServiceRadius" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Business Address</label>
+                                <InputText @bind-Value="contractorProfile.BusinessAddress" class="form-control" />
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">City</label>
+                                        <InputText @bind-Value="contractorProfile.City" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">State</label>
+                                        <InputText @bind-Value="contractorProfile.State" class="form-control" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">ZIP Code</label>
+                                        <InputText @bind-Value="contractorProfile.ZipCode" class="form-control" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Business Description</label>
+                                <InputTextArea @bind-Value="contractorProfile.Description" class="form-control" rows="3" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Website</label>
+                                <InputText @bind-Value="contractorProfile.Website" class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Services Offered *</label>
+                                <div class="row">
+                                    @foreach (var category in serviceCategories)
+                                    {
+                                        <div class="col-md-6 col-lg-4">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input"
+                                                       @onchange="@((e) => ToggleServiceCategory(category.Id, (bool)e.Value!))" />
+                                                <label class="form-check-label">@category.Name</label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-success" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                }
+                                Complete Profile
+                            </button>
+                        </EditForm>
+                    }
+
+                    @if (profileTypeSelected)
+                    {
+                        <button type="button" class="btn btn-outline-secondary ms-2" @onclick="ResetProfileType">
+                            Back to Profile Type
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .profile-type-card {
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        border: 2px solid transparent;
+    }
+
+    .profile-type-card:hover {
+        border-color: var(--bs-primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+</style>
+
+@code {
+    private ApplicationUser? currentUser;
+    private bool profileTypeSelected = false;
+    private UserType selectedUserType;
+    private bool isProcessing = false;
+
+    private HomeownerProfile homeownerProfile = new();
+    private ContractorProfile contractorProfile = new();
+    private List<ServiceCategory> serviceCategories = new();
+    private List<int> selectedServiceCategories = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            currentUser = await UserManager.GetUserAsync(authState.User);
+            if (currentUser != null && currentUser.IsProfileComplete)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+        }
+
+        serviceCategories = await ProfileService.GetAllServiceCategoriesAsync();
+    }
+
+    private void SelectProfileType(UserType userType)
+    {
+        selectedUserType = userType;
+        profileTypeSelected = true;
+    }
+
+    private void ResetProfileType()
+    {
+        profileTypeSelected = false;
+        selectedServiceCategories.Clear();
+    }
+
+    private void ToggleServiceCategory(int categoryId, bool isSelected)
+    {
+        if (isSelected && !selectedServiceCategories.Contains(categoryId))
+        {
+            selectedServiceCategories.Add(categoryId);
+        }
+        else if (!isSelected && selectedServiceCategories.Contains(categoryId))
+        {
+            selectedServiceCategories.Remove(categoryId);
+        }
+    }
+
+    private async Task CompleteHomeownerProfile()
+    {
+        if (currentUser == null) return;
+
+        isProcessing = true;
+        try
+        {
+            await UserManager.UpdateAsync(currentUser);
+            await ProfileService.CompleteHomeownerProfileAsync(currentUser.Id, homeownerProfile);
+            Navigation.NavigateTo("/");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task CompleteContractorProfile()
+    {
+        if (currentUser == null || !selectedServiceCategories.Any()) return;
+
+        isProcessing = true;
+        try
+        {
+            await UserManager.UpdateAsync(currentUser);
+            await ProfileService.CompleteContractorProfileAsync(currentUser.Id, contractorProfile, selectedServiceCategories);
+            Navigation.NavigateTo("/");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+}

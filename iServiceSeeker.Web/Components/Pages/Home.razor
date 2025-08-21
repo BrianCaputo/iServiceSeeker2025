@@ -1,0 +1,80 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Identity
+@using iServiceSeeker.Core.Entities
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+
+<PageTitle>iServiceSeeker - Connect with Quality Home Service Professionals</PageTitle>
+
+<div class="hero-section bg-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="display-4 fw-bold">Find Quality Home Services</h1>
+                <p class="lead">Connect with verified contractors through our professional RFx process and competitive bidding platform.</p>
+
+                <AuthorizeView>
+                    <Authorized>
+                        @if (currentUser != null)
+                        {
+                            <div class="alert alert-info">
+                                <strong>Welcome back, @currentUser.FullName!</strong>
+                                <br />Account Type: <span class="badge bg-secondary">@currentUser.UserType</span>
+                                @if (!currentUser.IsProfileComplete)
+                                {
+                                    <br />
+                            
+                                    <a href="/Account/CompleteProfile" class="btn btn-warning btn-sm mt-2">Complete Your Profile</a>
+                                }
+                            </div>
+                        }
+                    </Authorized>
+                    <NotAuthorized>
+                        <div class="mt-4">
+                            <a href="/Account/Register" class="btn btn-light btn-lg me-3">Get Started</a>
+                            <a href="/Account/Login" class="btn btn-outline-light btn-lg">Sign In</a>
+                        </div>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <i class="fas fa-handshake fa-5x opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-4 text-center mb-4">
+            <i class="fas fa-file-contract fa-3x text-primary mb-3"></i>
+            <h4>Professional RFx Process</h4>
+            <p>Use industry-standard Request for Proposal processes to get detailed, comparable bids.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <i class="fas fa-gavel fa-3x text-success mb-3"></i>
+            <h4>Reverse Auctions</h4>
+            <p>Let contractors compete for your project with transparent, competitive bidding.</p>
+        </div>
+        <div class="col-md-4 text-center mb-4">
+            <i class="fas fa-shield-alt fa-3x text-info mb-3"></i>
+            <h4>Verified Contractors</h4>
+            <p>Work with licensed, insured, and vetted professionals in your area.</p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private ApplicationUser? currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            currentUser = await UserManager.GetUserAsync(authState.User);
+        }
+    }
+}
