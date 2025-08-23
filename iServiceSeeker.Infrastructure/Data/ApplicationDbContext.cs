@@ -38,17 +38,18 @@ namespace iServiceSeeker.Infrastructure.Data
                 .WithMany(sc => sc.ContractorServiceAreas)
                 .HasForeignKey(csa => csa.ServiceCategoryId);
 
-            // Seed data
-            builder.Entity<ServiceCategory>().HasData(
-                new ServiceCategory { Id = 1, Name = "General Contracting", Description = "General construction and renovation services" },
-                new ServiceCategory { Id = 2, Name = "Plumbing", Description = "Plumbing installation, repair, and maintenance" },
-                new ServiceCategory { Id = 3, Name = "Electrical", Description = "Electrical installation, repair, and maintenance" },
-                new ServiceCategory { Id = 4, Name = "HVAC", Description = "Heating, ventilation, and air conditioning services" },
-                new ServiceCategory { Id = 5, Name = "Roofing", Description = "Roof installation, repair, and maintenance" },
-                new ServiceCategory { Id = 6, Name = "Flooring", Description = "Floor installation and refinishing" },
-                new ServiceCategory { Id = 7, Name = "Painting", Description = "Interior and exterior painting services" },
-                new ServiceCategory { Id = 8, Name = "Landscaping", Description = "Landscape design and maintenance" }
-            );
+            // Note: Seed data is now handled by the SQL script
+            // No need to add seed data here since it's already in the database
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            if (!optionsBuilder.IsConfigured)
+            {
+                // This helps with some EF Core issues when migrations aren't used
+                optionsBuilder.EnableSensitiveDataLogging(false);
+                optionsBuilder.EnableDetailedErrors(true);
+            }
         }
     }
 }

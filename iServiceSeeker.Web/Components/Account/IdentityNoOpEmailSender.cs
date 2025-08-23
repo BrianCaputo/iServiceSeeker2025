@@ -1,4 +1,5 @@
-using iServiceSeeker.Web.Data;
+using iServiceSeeker.Infrastructure.Data;
+using iServiceSeeker.Core.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 

@@ -1,4 +1,4 @@
-using iServiceSeeker.Web.Data;
+using iServiceSeeker.Core.Entities;
 using Microsoft.AspNetCore.Identity;
 
 namespace iServiceSeeker.Web.Components.Account

@@ -1,17 +1,19 @@
 using iServiceSeeker.Core.Entities;
 using iServiceSeeker.Infrastructure.Data;
 using iServiceSeeker.Web.Components;
+using iServiceSeeker.Web.Components.Account;
 using iServiceSeeker.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add Entity Framework
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<IdentityUserAccessor>();
+builder.Services.AddCascadingAuthenticationState();
 
 // Add Identity with custom user
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
@@ -83,24 +85,5 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// Seed roles
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    await SeedRoles(roleManager);
-}
 
 app.Run();
-
-static async Task SeedRoles(RoleManager<IdentityRole> roleManager)
-{
-    var roles = new[] { "Admin", "Homeowner", "Contractor" };
-
-    foreach (var role in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-        {
-            await roleManager.CreateAsync(new IdentityRole(role));
-        }
-    }
-}
