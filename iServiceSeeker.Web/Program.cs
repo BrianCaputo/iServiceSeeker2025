@@ -2,88 +2,172 @@ using iServiceSeeker.Core.Entities;
 using iServiceSeeker.Infrastructure.Data;
 using iServiceSeeker.Web.Components;
 using iServiceSeeker.Web.Components.Account;
-using iServiceSeeker.Web.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using iServiceSeeker.Web.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
+using AspNet.Security.OAuth.LinkedIn;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add Entity Framework
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<IdentityRedirectManager>();
-builder.Services.AddScoped<IdentityUserAccessor>();
-builder.Services.AddCascadingAuthenticationState();
-
-// Add Identity with custom user
-builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
-{
-    // Password settings
-    options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 6;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = false;
-    options.Password.RequireLowercase = false;
-
-    // Lockout settings
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
-    options.Lockout.MaxFailedAccessAttempts = 5;
-
-    // User settings
-    options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedEmail = false;
-})
-.AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>();
-
-// Add Blazor Server
+// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Add SignalR
-builder.Services.AddSignalR();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<IdentityUserAccessor>();
+builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-// Add custom services
-builder.Services.AddScoped<UserProfileService>();
+
+builder.Services.AddRazorPages();
+builder.Services.AddServerSideBlazor();
+
+// --- START: Identity, Database, & External Auth Configuration ---
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// This single block configures authentication, including Identity cookies and external providers.
+builder.Services.AddAuthentication(options =>
+{
+    // This sets the default scheme for handling logins to be the cookie-based one from Identity.
+    // It is the key to preventing the infinite redirect loop with external providers.
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+}).AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    options.SaveTokens = true;
+
+    // Important: Set the callback path
+    options.CallbackPath = "/signin-google";
+
+    options.Scope.Add("profile");
+    options.Scope.Add("email");
+    options.ClaimActions.MapJsonKey("picture", "picture");
+})
+/*.AddMicrosoftAccount(MicrosoftAccountDefaults.AuthenticationScheme, options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"];
+    options.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"];
+    options.SaveTokens = true;
+
+    // Optional: Add additional scopes
+    options.Scope.Add("https://graph.microsoft.com/user.read");
+
+    // Optional: Map additional claims
+    options.ClaimActions.MapJsonKey("picture", "picture");
+    options.ClaimActions.MapJsonKey("locale", "locale");
+}).AddLinkedIn(LinkedInAuthenticationDefaults.AuthenticationScheme, options =>
+    {
+        options.ClientId = builder.Configuration["Authentication:LinkedIn:ClientId"];
+        options.ClientSecret = builder.Configuration["Authentication:LinkedIn:ClientSecret"];
+        options.SaveTokens = true;
+
+        // LinkedIn scopes
+        options.Scope.Add("r_liteprofile");
+        options.Scope.Add("r_emailaddress");
+
+        // Map LinkedIn claims
+        options.ClaimActions.MapJsonKey("picture", "profilePicture");
+        options.ClaimActions.MapJsonKey("locale", "locale");
+    })*/.AddIdentityCookies();
+
+// This configures the core Identity system with your custom ApplicationUser.
+builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddRoles<IdentityRole>() // Enables the Roles system (for "Admin", etc.)
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddSignInManager()
+    .AddDefaultTokenProviders();
+
+// --- END: Identity, Database, & External Auth Configuration ---
+
+builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
+
+// This allows the frontend to make HTTP calls to the backend API service.
+builder.Services.AddHttpClient<UserProfileService>(client => client.BaseAddress = new("http://apiservice"));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
-if (!app.Environment.IsDevelopment())
+
+// --- START: Database Reset and Seeding Logic (For Development Only) ---
+using (var scope = app.Services.CreateScope())
 {
-    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+        // WARNING: This is for development only. It deletes the database on every startup.
+        context.Database.EnsureDeleted();
+        context.Database.EnsureCreated();
+
+        // Seed the "Admin" role into the database if it doesn't exist.
+        if (!await roleManager.RoleExistsAsync("Admin"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+        }
+
+        // Create a default admin user if one doesn't exist.
+        var adminUser = await userManager.FindByEmailAsync("admin@serviceseeker.com");
+        if (adminUser == null)
+        {
+            adminUser = new ApplicationUser
+            {
+                UserName = "admin@serviceseeker.com",
+                Email = "admin@serviceseeker.com",
+                FirstName = "Admin",
+                LastName = "User",
+                UserType = UserType.Admin, // Or another default
+                EmailConfirmed = true // Confirm email immediately for the admin
+            };
+            // IMPORTANT: Use a strong, secure password from your secrets file in a real app!
+            await userManager.CreateAsync(adminUser, "AdminPassword1!");
+            await userManager.AddToRoleAsync(adminUser, "Admin");
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred creating and seeding the DB.");
+    }
+}
+// --- END: Database Reset and Seeding Logic ---
+
+
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseMigrationsEndPoint();
+}
+else
+{
+    app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-// Add authentication endpoints
+// Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
-// Redirect incomplete profiles
-app.Use(async (context, next) =>
-{
-    if (context.User.Identity?.IsAuthenticated == true &&
-        !context.Request.Path.StartsWithSegments("/Account") &&
-        context.Request.Path != "/" &&
-        !context.Request.Path.StartsWithSegments("/_"))
-    {
-        var userManager = context.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
-        var user = await userManager.GetUserAsync(context.User);
-
-        if (user != null && !user.IsProfileComplete)
-        {
-            context.Response.Redirect("/Account/CompleteProfile");
-            return;
-        }
-    }
-    await next();
-});
-
+app.MapRazorPages();
+app.MapBlazorHub();
 
 app.Run();

@@ -7,7 +7,6 @@ namespace iServiceSeeker.Infrastructure.Data
     public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
-
         public DbSet<HomeownerProfile> HomeownerProfiles { get; set; }
         public DbSet<ContractorProfile> ContractorProfiles { get; set; }
         public DbSet<ServiceCategory> ServiceCategories { get; set; }

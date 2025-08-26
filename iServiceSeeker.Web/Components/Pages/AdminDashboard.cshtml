@@ -1,0 +1,6 @@
+﻿@page "/admin-dashboard"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+
+<h1>Admin Dashboard</h1>
+<p>Only users with the 'Admin' role can see this page.</p>

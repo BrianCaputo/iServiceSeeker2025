@@ -71,7 +71,7 @@ namespace iServiceSeeker.Core.Entities
 
         public bool IsVerified { get; set; } = false;
         public DateTime? VerifiedAt { get; set; }
-        public decimal ServiceRadius { get; set; } = 25; // miles
+        public decimal ServiceRadius { get; set; } = 50; // miles
 
         [StringLength(1000)]
         public string? Description { get; set; }
