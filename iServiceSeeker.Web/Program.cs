@@ -21,15 +21,13 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
-
-
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
 // --- START: Identity, Database, & External Auth Configuration ---
-
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 // This single block configures authentication, including Identity cookies and external providers.
 builder.Services.AddAuthentication(options =>
@@ -63,20 +61,21 @@ builder.Services.AddAuthentication(options =>
     // Optional: Map additional claims
     options.ClaimActions.MapJsonKey("picture", "picture");
     options.ClaimActions.MapJsonKey("locale", "locale");
-}).AddLinkedIn(LinkedInAuthenticationDefaults.AuthenticationScheme, options =>
+})*/
+.AddLinkedIn(LinkedInAuthenticationDefaults.AuthenticationScheme, options =>
     {
         options.ClientId = builder.Configuration["Authentication:LinkedIn:ClientId"];
         options.ClientSecret = builder.Configuration["Authentication:LinkedIn:ClientSecret"];
+        options.Scope.Clear();
+        options.Scope.Add("openid");
+        options.Scope.Add("profile");
+        options.Scope.Add("email");
         options.SaveTokens = true;
-
-        // LinkedIn scopes
-        options.Scope.Add("r_liteprofile");
-        options.Scope.Add("r_emailaddress");
 
         // Map LinkedIn claims
         options.ClaimActions.MapJsonKey("picture", "profilePicture");
         options.ClaimActions.MapJsonKey("locale", "locale");
-    })*/.AddIdentityCookies();
+    })  .AddIdentityCookies();
 
 // This configures the core Identity system with your custom ApplicationUser.
 builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
@@ -92,6 +91,7 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 // This allows the frontend to make HTTP calls to the backend API service.
 builder.Services.AddHttpClient<UserProfileService>(client => client.BaseAddress = new("http://apiservice"));
 
+builder.Services.AddScoped<UserProfileService>();
 var app = builder.Build();
 
 

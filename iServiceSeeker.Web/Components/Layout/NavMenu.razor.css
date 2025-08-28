@@ -123,3 +123,7 @@
         overflow-y: auto;
     }
 }
+::deep .logo-image {
+    height: 40px; /* You can adjust this value */
+    width: 200px;
+}

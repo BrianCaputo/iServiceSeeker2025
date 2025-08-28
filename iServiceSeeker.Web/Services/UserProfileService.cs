@@ -43,7 +43,6 @@ namespace iServiceSeeker.Web.Services
 
             return true;
         }
-
         public async Task<bool> CompleteContractorProfileAsync(string userId, ContractorProfile profile, List<int> serviceCategories)
         {
             var user = await _userManager.FindByIdAsync(userId);
