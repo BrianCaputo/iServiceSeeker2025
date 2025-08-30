@@ -124,6 +124,6 @@
     }
 }
 ::deep .logo-image {
-    height: 40px; /* You can adjust this value */
-    width: 200px;
+    padding-top: 5px;
+    padding-left: 5px;
 }
