@@ -5,11 +5,11 @@ using iServiceSeeker.Web.Components.Account;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using iServiceSeeker.Web.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.MicrosoftAccount;
 using AspNet.Security.OAuth.LinkedIn;
+using iServiceSeeker.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

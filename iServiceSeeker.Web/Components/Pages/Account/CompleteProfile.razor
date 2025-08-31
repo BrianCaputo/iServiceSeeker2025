@@ -2,7 +2,9 @@
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Identity
 @using iServiceSeeker.Core.Entities
+@using iServiceSeeker.Web.Components.Account
 @using iServiceSeeker.Web.Services
+
 @inject UserManager<ApplicationUser> UserManager
 @inject UserProfileService ProfileService
 @inject NavigationManager Navigation
@@ -33,10 +35,10 @@
                                 </div>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <div class="card h-100 profile-type-card" @onclick="() => SelectProfileType(UserType.Contractor)">
+                                <div class="card h-100 profile-type-card" @onclick="() => SelectProfileType(UserType.ServiceProvider)">
                                     <div class="card-body text-center">
                                         <i class="fas fa-tools fa-3x text-success mb-3"></i>
-                                        <h5>I'm a Contractor</h5>
+                                        <h5>I'm a Service Provider</h5>
                                         <p class="text-muted">Providing services to homeowners</p>
                                     </div>
                                 </div>
@@ -114,13 +116,13 @@
                             </button>
                         </EditForm>
                     }
-                    else if (selectedUserType == UserType.Contractor)
+                    else if (selectedUserType == UserType.ServiceProvider)
                     {
-                        <EditForm Model="contractorProfile" OnValidSubmit="CompleteContractorProfile">
+                        <EditForm Model="serviceProviderProfile" OnValidSubmit="CompleteServiceProviderProfile">
                             <DataAnnotationsValidator />
                             <ValidationSummary class="alert alert-danger" />
 
-                            <h5>Contractor Information</h5>
+                            <h5>Service Provider Information</h5>
 
                             <div class="row">
                                 <div class="col-md-6">
@@ -141,67 +143,86 @@
 
                             <div class="mb-3">
                                 <label class="form-label">Company Name *</label>
-                                <InputText @bind-Value="contractorProfile.CompanyName" class="form-control" />
-                                <ValidationMessage For="() => contractorProfile.CompanyName" />
+                                <InputText @bind-Value="serviceProviderProfile.CompanyName" class="form-control" />
+                                <ValidationMessage For="() => serviceProviderProfile.CompanyName" />
+                                <div class="form-text">This will be your primary service provider profile. You can create additional profiles later.</div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">License Number</label>
-                                        <InputText @bind-Value="contractorProfile.LicenseNumber" class="form-control" />
+                                        <InputText @bind-Value="serviceProviderProfile.LicenseNumber" class="form-control" />
+                                        <div class="form-text">Professional license or certification number (if applicable)</div>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">Service Radius (miles)</label>
-                                        <InputNumber @bind-Value="contractorProfile.ServiceRadius" class="form-control" />
+                                        <InputNumber @bind-Value="serviceProviderProfile.ServiceRadius" class="form-control" />
+                                        <div class="form-text">How far are you willing to travel for jobs?</div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Business Address</label>
-                                <InputText @bind-Value="contractorProfile.BusinessAddress" class="form-control" />
+                                <InputText @bind-Value="serviceProviderProfile.BusinessAddress" class="form-control" />
+                                <div class="form-text">Your business location or primary operating address</div>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">City</label>
-                                        <InputText @bind-Value="contractorProfile.City" class="form-control" />
+                                        <InputText @bind-Value="serviceProviderProfile.City" class="form-control" />
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">State</label>
-                                        <InputText @bind-Value="contractorProfile.State" class="form-control" />
+                                        <InputText @bind-Value="serviceProviderProfile.State" class="form-control" />
                                     </div>
                                 </div>
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label">ZIP Code</label>
-                                        <InputText @bind-Value="contractorProfile.ZipCode" class="form-control" />
+                                        <InputText @bind-Value="serviceProviderProfile.ZipCode" class="form-control" />
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Business Description</label>
-                                <InputTextArea @bind-Value="contractorProfile.Description" class="form-control" rows="3" />
+                                <InputTextArea @bind-Value="serviceProviderProfile.Description" class="form-control" rows="3"
+                                               placeholder="Tell potential customers about your business, experience, and what makes you unique..." />
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Website</label>
-                                <InputText @bind-Value="contractorProfile.Website" class="form-control" />
+                                <InputText @bind-Value="serviceProviderProfile.Website" class="form-control"
+                                           placeholder="https://www.yourwebsite.com" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Your Role in this Business *</label>
+                                <InputSelect @bind-Value="userRole" class="form-select">
+                                    <option value="@ServiceProviderRole.Owner">Owner</option>
+                                    <option value="@ServiceProviderRole.Manager">Manager</option>
+                                    <option value="@ServiceProviderRole.Employee">Employee</option>
+                                    <option value="@ServiceProviderRole.Partner">Partner</option>
+                                    <option value="@ServiceProviderRole.Member">Member</option>
+                                </InputSelect>
+                                <div class="form-text">Your role determines your permissions within this service provider profile</div>
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label">Services Offered *</label>
+                                <div class="form-text mb-2">Select all services that this business provides:</div>
                                 <div class="row">
                                     @foreach (var category in serviceCategories)
                                     {
-                                        <div class="col-md-6 col-lg-4">
+                                        <div class="col-md-6 col-lg-4 mb-2">
                                             <div class="form-check">
                                                 <input type="checkbox" class="form-check-input"
                                                        @onchange="@((e) => ToggleServiceCategory(category.Id, (bool)e.Value!))" />
@@ -210,9 +231,13 @@
                                         </div>
                                     }
                                 </div>
+                                @if (!selectedServiceCategories.Any())
+                                {
+                                    <div class="text-danger small">Please select at least one service category</div>
+                                }
                             </div>
 
-                            <button type="submit" class="btn btn-success" disabled="@isProcessing">
+                            <button type="submit" class="btn btn-success" disabled="@(isProcessing || !selectedServiceCategories.Any())">
                                 @if (isProcessing)
                                 {
                                     <span class="spinner-border spinner-border-sm me-2"></span>
@@ -241,11 +266,11 @@
         border: 2px solid transparent;
     }
 
-    .profile-type-card:hover {
-        border-color: var(--bs-primary);
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
+        .profile-type-card:hover {
+            border-color: var(--bs-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
 </style>
 
 @code {
@@ -255,7 +280,8 @@
     private bool isProcessing = false;
 
     private HomeownerProfile homeownerProfile = new();
-    private ContractorProfile contractorProfile = new();
+    private ServiceProviderProfile serviceProviderProfile = new();
+    private ServiceProviderRole userRole = ServiceProviderRole.Owner;
     private List<ServiceCategory> serviceCategories = new();
     private List<int> selectedServiceCategories = new();
 
@@ -279,12 +305,19 @@
     {
         selectedUserType = userType;
         profileTypeSelected = true;
+
+        // Set the user type on the current user
+        if (currentUser != null)
+        {
+            currentUser.UserType = userType;
+        }
     }
 
     private void ResetProfileType()
     {
         profileTypeSelected = false;
         selectedServiceCategories.Clear();
+        userRole = ServiceProviderRole.Owner;
     }
 
     private void ToggleServiceCategory(int categoryId, bool isSelected)
@@ -306,9 +339,18 @@
         isProcessing = true;
         try
         {
+            // Update user type and profile completion status
+            currentUser.UserType = UserType.Homeowner;
+            currentUser.IsProfileComplete = true;
+
             await UserManager.UpdateAsync(currentUser);
             await ProfileService.CompleteHomeownerProfileAsync(currentUser.Id, homeownerProfile);
             Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            // Handle error - you might want to show an error message
+            // statusMessage = "An error occurred while completing your profile.";
         }
         finally
         {
@@ -316,16 +358,29 @@
         }
     }
 
-    private async Task CompleteContractorProfile()
+    private async Task CompleteServiceProviderProfile()
     {
         if (currentUser == null || !selectedServiceCategories.Any()) return;
 
         isProcessing = true;
         try
         {
+            // Update user type and profile completion status
+            currentUser.UserType = UserType.ServiceProvider;
+            currentUser.IsProfileComplete = true;
+
             await UserManager.UpdateAsync(currentUser);
-            await ProfileService.CompleteContractorProfileAsync(currentUser.Id, contractorProfile, selectedServiceCategories);
-            Navigation.NavigateTo("/");
+            await ProfileService.CompleteServiceProviderProfileAsync(
+                currentUser.Id,
+                serviceProviderProfile,
+                selectedServiceCategories,
+                userRole);
+            Navigation.NavigateTo("/ServiceProvider/Dashboard");
+        }
+        catch (Exception ex)
+        {
+            // Handle error - you might want to show an error message
+            // statusMessage = "An error occurred while completing your profile.";
         }
         finally
         {

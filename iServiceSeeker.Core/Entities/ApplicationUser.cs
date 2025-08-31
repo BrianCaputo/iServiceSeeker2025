@@ -22,7 +22,9 @@ namespace iServiceSeeker.Core.Entities
 
         // Navigation properties
         public HomeownerProfile? HomeownerProfile { get; set; }
-        public ContractorProfile? ContractorProfile { get; set; }
+
+        // Many-to-many relationship with ServiceProviderProfiles
+        public List<UserServiceProvider> ServiceProviders { get; set; } = new();
 
         // Computed property
         public string FullName => $"{FirstName} {LastName}";
@@ -31,7 +33,7 @@ namespace iServiceSeeker.Core.Entities
     public enum UserType
     {
         Homeowner = 1,
-        Contractor = 2,
+        ServiceProvider = 2, 
         Admin = 3
     }
 
@@ -50,11 +52,39 @@ namespace iServiceSeeker.Core.Entities
         public bool ReceiveSmsNotifications { get; set; } = false;
     }
 
-    public class ContractorProfile
+    // Junction table for many-to-many relationship
+    public class UserServiceProvider
     {
         public int Id { get; set; }
         public string UserId { get; set; } = string.Empty;
         public ApplicationUser User { get; set; } = null!;
+        public int ServiceProviderProfileId { get; set; }
+        public ServiceProviderProfile ServiceProviderProfile { get; set; } = null!;
+
+        // Role within this service provider (Owner, Employee, Partner, etc.)
+        public ServiceProviderRole Role { get; set; } = ServiceProviderRole.Member;
+        public bool IsActive { get; set; } = true;
+        public DateTime JoinedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? LeftAt { get; set; }
+
+        // Permissions within this service provider
+        public bool CanManageProfile { get; set; } = false;
+        public bool CanManageBookings { get; set; } = false;
+        public bool CanViewReports { get; set; } = false;
+    }
+
+    public enum ServiceProviderRole
+    {
+        Member = 1,
+        Manager = 2,
+        Owner = 3,
+        Employee = 4,
+        Partner = 5
+    }
+
+    public class ServiceProviderProfile
+    {
+        public int Id { get; set; }
 
         [Required]
         [StringLength(200)]
@@ -77,15 +107,19 @@ namespace iServiceSeeker.Core.Entities
         public string? Description { get; set; }
         public string? Website { get; set; }
 
-        // Service areas
-        public List<ContractorServiceArea> ServiceAreas { get; set; } = new();
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool IsActive { get; set; } = true;
+
+        // Navigation properties
+        public List<UserServiceProvider> ServiceProviders { get; set; } = new();
+        public List<ServiceProviderServiceArea> ServiceAreas { get; set; } = new();
     }
 
-    public class ContractorServiceArea
+    public class ServiceProviderServiceArea
     {
         public int Id { get; set; }
-        public int ContractorProfileId { get; set; }
-        public ContractorProfile ContractorProfile { get; set; } = null!;
+        public int ServiceProviderProfileId { get; set; }
+        public ServiceProviderProfile ServiceProviderProfile { get; set; } = null!;
         public int ServiceCategoryId { get; set; }
         public ServiceCategory ServiceCategory { get; set; } = null!;
         public bool IsActive { get; set; } = true;
@@ -104,6 +138,6 @@ namespace iServiceSeeker.Core.Entities
         public bool IsActive { get; set; } = true;
 
         // Navigation
-        public List<ContractorServiceArea> ContractorServiceAreas { get; set; } = new();
+        public List<ServiceProviderServiceArea> ServiceProviderServiceAreas { get; set; } = new();
     }
 }
